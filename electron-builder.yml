@@ -1,0 +1,25 @@
+appId: com.shiyangyang.dshdesktop
+productName: DSH Desktop
+# asar: false — the app spawns dsh as a separate Electron-as-Node process, and
+# that plain-Node child reads node_modules directly from disk, so the modules
+# must not be sealed inside an asar archive.
+asar: false
+# The native deps (node-pty, koffi) are Node-API (ABI-stable) and already load
+# under Electron's Node; rebuilding would only risk breaking them.
+npmRebuild: false
+directories:
+  output: dist
+files:
+  - electron/**
+  - package.json
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: DSH Desktop

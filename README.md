@@ -6,39 +6,35 @@ This repository is **not a fork** of deepseek-harness. It is a thin consumer: it
 depends on the published `@deepseek-ai/dsh` CLI and wraps the Web surface in an
 Electron window. Upgrading dsh is a version bump, not a merge.
 
-## Phase 0 — VERIFIED
+## What works
 
-The startup chain is proven end to end:
+The startup chain is proven end to end, both from source and as a packaged app:
 
 ```text
-double-click → Electron main → spawn `dsh --profile web` → read printed URL
-→ BrowserWindow loads the served frontend
+double-click → Electron main → spawn `dsh --profile web` (Electron's own Node)
+→ read printed URL → BrowserWindow loads the served frontend
 ```
 
-Both spawn paths pass (headless smoke, `did-finish-load` + clean quit):
+- **Phase 0 (POC)** — spawn + URL capture + window load, both spawn paths.
+- **Phase 1 (packaging)** — electron-builder NSIS `Setup.exe` with desktop and
+  start-menu shortcuts; single-instance lock; process-tree shutdown.
 
-| Path | Result |
-|---|---|
-| system `node` (v24.9.0) | ✅ loads |
-| Electron bundled Node (v22.22.1) | ✅ loads with `--expose-internals` |
+### Key findings baked into the build
 
-### Findings (the answers Phase 0 set out to get)
+- Electron 39 bundles Node 22.22.1, which satisfies dsh's engine floor
+  (`^22.19 || >=24`), so the packaged app spawns dsh with Electron's own Node —
+  no system Node required.
+- The spawn passes `--expose-internals` so dsh's module loader reaches Node
+  internals directly instead of through the ABI-bound
+  `node-addon-require-builtin` addon.
+- `node-pty` and `koffi` are Node-API (ABI-stable), so `npmRebuild: false` keeps
+  them loadable under Electron unchanged.
+- `--port 0` lets the OS pick a free port; the app reads the real URL from dsh's
+  printed `dsh web:` line.
+- `asar: false` because the spawned dsh process reads `node_modules` from disk
+  directly.
 
-- **Electron 39.8.10 bundles Node 22.22.1**, which satisfies dsh's engine floor
-  (`^22.19 || >=24`). The self-contained packaged app can use Electron's own
-  Node — no separate Node install needed.
-- **`--expose-internals` is required** when spawning dsh with Electron's Node.
-  dsh's module loader reaches Node internals two ways: the `--expose-internals`
-  flag, or the `node-addon-require-builtin` native addon. The addon is ABI-bound
-  to the Node that built it (here system Node 24, ABI 137), so it cannot load
-  under Electron's Node (ABI 140). Passing `--expose-internals` takes the flag
-  path and sidesteps the addon entirely.
-- **`node-pty` and `koffi` are Node-API (ABI-stable)** and load under Electron
-  unchanged, so no `@electron/rebuild` pass is needed.
-- **`--port 0` works**: dsh lets the OS pick a free port, so multiple instances
-  never collide; the POC reads the real URL from dsh's printed `dsh web:` line.
-
-## Install
+## Install & run
 
 ```sh
 npm install
@@ -47,27 +43,38 @@ POC_HEADLESS=1 npm start  # hidden; auto-quits after the page loads (CI smoke)
 ```
 
 On a machine whose npm registry is a China mirror (e.g. `registry.npmmirror.com`),
-the Electron binary download from GitHub stalls; point it at the mirror for the
-install:
+the Electron binary download from GitHub stalls; point it at the mirror:
 
 ```sh
 ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ npm install
 ```
 
-Env flags for `electron/main.mjs`:
+## Build the installer
 
-- `POC_ELECTRON_NODE=1` — spawn dsh with Electron's bundled Node (the packaged
-  app's real path) instead of the system `node`.
+```sh
+npm run build
+```
+
+Outputs `dist/DSH Desktop Setup 0.1.0.exe` (NSIS; installs desktop + start-menu
+shortcuts). On a China-mirror machine, add the binaries mirror for the NSIS
+tooling download:
+
+```sh
+ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ npm run build
+```
+
+## Env flags (dev/debug)
+
+- `POC_SYSTEM_NODE=1` — spawn dsh with the system `node` instead of Electron's
+  bundled Node (a packaged app must NOT use this).
 - `POC_HEADLESS=1` — hide the window and quit once the page loads.
 - `POC_AUTO_QUIT_MS=N` — quit after N ms regardless.
 
-The POC keeps an isolated dsh home at `.dsh-home/` so it never touches a real
-`~/.dsh` profile store.
+The packaged app keeps its dsh home under the per-user data dir
+(`%APPDATA%\dsh-desktop\dsh-home`); dev uses an isolated `.dsh-home/`.
 
 ## Roadmap
 
-- Phase 1 — electron-builder NSIS `Setup.exe` with desktop/start-menu shortcuts;
-  single-instance lock and clean backend shutdown (Windows process-tree kill).
-- Phase 2 — CI build + release.
-- Phase 3 — open-source polish (architecture diagram, third-party notices,
-  install docs).
+- Phase 2 — CI build + GitHub Release (upload `Setup.exe`).
+- Phase 3 — open-source polish: application icon, third-party notices, install
+  docs.
