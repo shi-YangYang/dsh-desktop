@@ -34,6 +34,16 @@ double-click → Electron main → spawn `dsh --profile web` (Electron's own Nod
 - `asar: false` because the spawned dsh process reads `node_modules` from disk
   directly.
 
+### Maintenance: the explicit `@deepseek-ai/*` dependencies
+
+`package.json` declares many `@deepseek-ai/dsh-*` packages in addition to the
+`@deepseek-ai/dsh` CLI. That list is not optional: dsh declares those packages
+as **peerDependencies** (imported at runtime), and electron-builder only bundles
+the production `dependencies` graph, so it drops peer deps. If a dsh version
+bump adds a new runtime import, add the missing `@deepseek-ai/*` package here too
+— compare the packaged `resources/app/node_modules/@deepseek-ai` against the dev
+`node_modules/@deepseek-ai` to find gaps.
+
 ## Install & run
 
 ```sh
