@@ -1,114 +1,100 @@
 # dsh-desktop
 
-Electron desktop shell for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
+> Electron desktop shell for DeepSeek Harness — double-click to launch dsh, no CLI required.
 
-This repository is **not a fork** of deepseek-harness. It is a thin consumer: it
-depends on the published `@deepseek-ai/dsh` CLI and wraps the Web surface in an
-Electron window. Upgrading dsh is a version bump, not a merge.
+dsh-desktop wraps the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web surface in an Electron window.
 
-## Install (end users)
+It is **not a fork** of deepseek-harness. It is a thin consumer that depends on the published `@deepseek-ai/dsh` CLI — upgrading dsh is a version bump, not a merge.
+
+## Table of Contents
+
+- [Background](#background)
+- [Install](#install)
+- [Usage](#usage)
+- [Build](#build)
+- [Release](#release)
+- [Maintenance](#maintenance)
+- [Maintainers](#maintainers)
+- [License](#license)
+
+## Background
+
+DeepSeek Harness (`dsh`) ships as a CLI and a Web app. dsh-desktop gives it a desktop form: an Electron window that boots the `dsh` backend and loads the Web surface, so you launch it by double-clicking instead of running a command.
+
+The packaged app is self-contained: it bundles the `dsh` backend and Electron's own Node runtime, so end users need neither Node nor the `dsh` CLI. It shares the CLI's `~/.dsh` home, so sessions and configuration are the same across both.
+
+## Install
+
+### End users
 
 1. Download `DSH Desktop Setup <version>.exe` from the latest GitHub Release.
 2. Run it and follow the prompts; it creates desktop and start-menu shortcuts.
 3. Double-click the shortcut to launch.
 
-Nothing else is required — the installer bundles the dsh backend and its own
-Node runtime. If the `dsh` CLI is also installed, the desktop app shares its
-`~/.dsh` sessions and configuration.
+To uninstall, run `Uninstall DSH Desktop.exe` in the install directory, or remove it from *Settings → Apps*.
 
-To uninstall, run `Uninstall DSH Desktop.exe` in the install directory, or
-remove it from *Settings → Apps*.
+### Developers
 
-## What works
+```sh
+npm install
+npm start
+```
 
-The startup chain is proven end to end, both from source and as a packaged app:
+On a machine whose npm registry is a China mirror (e.g. `registry.npmmirror.com`), the Electron binary download from GitHub stalls; point it at the mirror:
+
+```sh
+ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ npm install
+```
+
+## Usage
 
 ```text
 double-click → Electron main → spawn `dsh --profile web` (Electron's own Node)
 → read printed URL → BrowserWindow loads the served frontend
 ```
 
-- **Phase 0 (POC)** — spawn + URL capture + window load, both spawn paths.
-- **Phase 1 (packaging)** — electron-builder NSIS `Setup.exe` with desktop and
-  start-menu shortcuts; single-instance lock; process-tree shutdown.
-- **Phase 2 (CI)** — GitHub Actions builds the installer on Windows and publishes
-  it to a GitHub Release on `v*` tags.
+The packaged app shares the CLI's default dsh home (`~/.dsh`); dev uses an isolated `.dsh-home/`.
 
-### Key findings baked into the build
+Dev/debug environment variables:
 
-- Electron 39 bundles Node 22.22.1, which satisfies dsh's engine floor
-  (`^22.19 || >=24`), so the packaged app spawns dsh with Electron's own Node —
-  no system Node required.
-- The spawn passes `--expose-internals` so dsh's module loader reaches Node
-  internals directly instead of through the ABI-bound
-  `node-addon-require-builtin` addon.
-- `node-pty` and `koffi` are Node-API (ABI-stable), so `npmRebuild: false` keeps
-  them loadable under Electron unchanged.
-- `--port 0` lets the OS pick a free port; the app reads the real URL from dsh's
-  printed `dsh web:` line.
-- `asar: false` because the spawned dsh process reads `node_modules` from disk
-  directly.
+- `POC_SYSTEM_NODE=1` — spawn dsh with the system `node` instead of Electron's bundled Node (a packaged app must NOT use this).
+- `POC_HEADLESS=1` — hide the window and quit once the page loads (CI smoke).
+- `POC_AUTO_QUIT_MS=N` — quit after N ms regardless.
 
-### Maintenance: the explicit `@deepseek-ai/*` dependencies
-
-`package.json` declares many `@deepseek-ai/dsh-*` packages in addition to the
-`@deepseek-ai/dsh` CLI. That list is not optional: dsh declares those packages
-as **peerDependencies** (imported at runtime), and electron-builder only bundles
-the production `dependencies` graph, so it drops peer deps. If a dsh version
-bump adds a new runtime import, add the missing `@deepseek-ai/*` package here too
-— compare the packaged `resources/app/node_modules/@deepseek-ai` against the dev
-`node_modules/@deepseek-ai` to find gaps.
-
-## Install & run
-
-```sh
-npm install
-npm start                 # visible window
-POC_HEADLESS=1 npm start  # hidden; auto-quits after the page loads (CI smoke)
-```
-
-On a machine whose npm registry is a China mirror (e.g. `registry.npmmirror.com`),
-the Electron binary download from GitHub stalls; point it at the mirror:
-
-```sh
-ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ npm install
-```
-
-## Build the installer
+## Build
 
 ```sh
 npm run build
 ```
 
-Outputs `dist/DSH Desktop Setup 0.1.0.exe` (NSIS; installs desktop + start-menu
-shortcuts). On a China-mirror machine, add the binaries mirror for the NSIS
-tooling download:
+Outputs `dist/DSH Desktop Setup 0.1.0.exe` (NSIS; installs desktop + start-menu shortcuts). On a China-mirror machine, add the binaries mirror for the NSIS tooling download:
 
 ```sh
 ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ npm run build
 ```
 
-The app icon (`build/icon.ico`) and third-party notices
-(`THIRD_PARTY_NOTICES.md`) are generated — `node scripts/make-icon.mjs` and
-`node scripts/make-notices.mjs` — and ship inside the installer.
-
-## Env flags (dev/debug)
-
-- `POC_SYSTEM_NODE=1` — spawn dsh with the system `node` instead of Electron's
-  bundled Node (a packaged app must NOT use this).
-- `POC_HEADLESS=1` — hide the window and quit once the page loads.
-- `POC_AUTO_QUIT_MS=N` — quit after N ms regardless.
-
-The packaged app shares the CLI's default dsh home (`~/.dsh`), so its sessions
-and config are the same as `dsh web`; dev uses an isolated `.dsh-home/`.
+The app icon (`build/icon.ico`) and third-party notices (`THIRD_PARTY_NOTICES.md`) are generated with `node scripts/make-icon.mjs` and `node scripts/make-notices.mjs`, and ship inside the installer.
 
 ## Release
 
-Push a `v*` tag (e.g. `v0.1.0`) to trigger the `build` workflow: it builds the
-installer on `windows-latest` and publishes `Setup.exe` to a GitHub Release. You
-can also run the workflow manually from the Actions tab.
+Push a `v*` tag (e.g. `v0.1.0`) to trigger the `build` workflow, which builds the installer on `windows-latest` and publishes `Setup.exe` to a GitHub Release. The workflow can also be run manually from the Actions tab.
 
-## Roadmap
+## Maintenance
 
-- Phase 3 — open-source polish: application icon, third-party notices, install
-  docs.
+The build relies on a few facts about dsh's packaging:
+
+- Electron 39 bundles Node 22.22.1, which satisfies dsh's engine floor (`^22.19 || >=24`), so the packaged app spawns dsh with Electron's own Node — no system Node required.
+- The spawn passes `--expose-internals` so dsh's module loader reaches Node internals directly instead of through the ABI-bound `node-addon-require-builtin` addon.
+- `node-pty` and `koffi` are Node-API (ABI-stable), so `npmRebuild: false` keeps them loadable under Electron unchanged.
+- `--port 0` lets the OS pick a free port; the app reads the real URL from dsh's printed `dsh web:` line.
+- `asar: false` because the spawned dsh process reads `node_modules` from disk directly.
+
+`package.json` declares many `@deepseek-ai/dsh-*` packages in addition to the `@deepseek-ai/dsh` CLI. That list is not optional: dsh declares those packages as **peerDependencies** (imported at runtime), and electron-builder only bundles the production `dependencies` graph, so it drops peer deps. If a dsh version bump adds a new runtime import, add the missing `@deepseek-ai/*` package here too — compare the packaged `resources/app/node_modules/@deepseek-ai` against the dev `node_modules/@deepseek-ai` to find gaps.
+
+## Maintainers
+
+[@shi-YangYang](https://github.com/shi-YangYang).
+
+## License
+
+[MIT](LICENSE) © shi-YangYang
