@@ -18,6 +18,8 @@ double-click → Electron main → spawn `dsh --profile web` (Electron's own Nod
 - **Phase 0 (POC)** — spawn + URL capture + window load, both spawn paths.
 - **Phase 1 (packaging)** — electron-builder NSIS `Setup.exe` with desktop and
   start-menu shortcuts; single-instance lock; process-tree shutdown.
+- **Phase 2 (CI)** — GitHub Actions builds the installer on Windows and publishes
+  it to a GitHub Release on `v*` tags.
 
 ### Key findings baked into the build
 
@@ -80,11 +82,16 @@ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-
 - `POC_HEADLESS=1` — hide the window and quit once the page loads.
 - `POC_AUTO_QUIT_MS=N` — quit after N ms regardless.
 
-The packaged app keeps its dsh home under the per-user data dir
-(`%APPDATA%\dsh-desktop\dsh-home`); dev uses an isolated `.dsh-home/`.
+The packaged app shares the CLI's default dsh home (`~/.dsh`), so its sessions
+and config are the same as `dsh web`; dev uses an isolated `.dsh-home/`.
+
+## Release
+
+Push a `v*` tag (e.g. `v0.1.0`) to trigger the `build` workflow: it builds the
+installer on `windows-latest` and publishes `Setup.exe` to a GitHub Release. You
+can also run the workflow manually from the Actions tab.
 
 ## Roadmap
 
-- Phase 2 — CI build + GitHub Release (upload `Setup.exe`).
 - Phase 3 — open-source polish: application icon, third-party notices, install
   docs.

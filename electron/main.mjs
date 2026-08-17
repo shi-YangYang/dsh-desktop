@@ -33,14 +33,13 @@ let backend
 let mainWindow
 
 /**
- * The dsh home. A packaged app writes to the per-user data dir (the install
- * dir may be read-only); dev uses an isolated `.dsh-home` so it never touches
- * a real `~/.dsh`.
+ * The dsh home. A packaged app shares dsh's default home (`~/.dsh`) so its
+ * sessions and config match the `dsh` CLI; dev uses an isolated `.dsh-home`
+ * so it never touches the real one. `undefined` means "do not override
+ * DSH_HOME — let dsh resolve its own default".
  */
 function dshHome() {
-  return app.isPackaged
-    ? path.join(app.getPath('userData'), 'dsh-home')
-    : path.join(APP_ROOT, '.dsh-home')
+  return app.isPackaged ? undefined : path.join(APP_ROOT, '.dsh-home')
 }
 
 /**
@@ -48,7 +47,8 @@ function dshHome() {
  * lets the OS pick a free port, so two instances never collide.
  */
 function startBackend() {
-  mkdirSync(dshHome(), { recursive: true })
+  const home = dshHome()
+  if (home !== undefined) mkdirSync(home, { recursive: true })
   // A packaged app has no system Node, so spawn Electron's own Node by
   // re-running the binary as Node (ELECTRON_RUN_AS_NODE=1).
   const executable = USE_SYSTEM_NODE ? 'node' : process.execPath
@@ -58,8 +58,9 @@ function startBackend() {
   // --expose-internals lets dsh's module loader reach Node internals directly,
   // instead of through the ABI-specific `node-addon-require-builtin` native
   // addon (built for the system Node's ABI, unloadable under Electron's).
+  const childEnv = home === undefined ? env : { ...env, DSH_HOME: home }
   const child = spawn(executable, ['--expose-internals', DSH_BIN, '--profile', 'web', '--host', '127.0.0.1', '--port', '0'], {
-    env: { ...env, DSH_HOME: dshHome() },
+    env: childEnv,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
