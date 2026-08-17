@@ -1,6 +1,12 @@
 # dsh-desktop
 
+English | [中文](README.zh.md)
+
 > Electron desktop shell for DeepSeek Harness — double-click to launch dsh, no CLI required.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
+[![build](https://github.com/shi-YangYang/dsh-desktop/actions/workflows/build.yml/badge.svg)](https://github.com/shi-YangYang/dsh-desktop/actions/workflows/build.yml)
 
 dsh-desktop wraps the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web surface in an Electron window.
 
