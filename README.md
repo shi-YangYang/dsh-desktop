@@ -6,6 +6,19 @@ This repository is **not a fork** of deepseek-harness. It is a thin consumer: it
 depends on the published `@deepseek-ai/dsh` CLI and wraps the Web surface in an
 Electron window. Upgrading dsh is a version bump, not a merge.
 
+## Install (end users)
+
+1. Download `DSH Desktop Setup <version>.exe` from the latest GitHub Release.
+2. Run it and follow the prompts; it creates desktop and start-menu shortcuts.
+3. Double-click the shortcut to launch.
+
+Nothing else is required — the installer bundles the dsh backend and its own
+Node runtime. If the `dsh` CLI is also installed, the desktop app shares its
+`~/.dsh` sessions and configuration.
+
+To uninstall, run `Uninstall DSH Desktop.exe` in the install directory, or
+remove it from *Settings → Apps*.
+
 ## What works
 
 The startup chain is proven end to end, both from source and as a packaged app:
@@ -74,6 +87,10 @@ tooling download:
 ```sh
 ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ npm run build
 ```
+
+The app icon (`build/icon.ico`) and third-party notices
+(`THIRD_PARTY_NOTICES.md`) are generated — `node scripts/make-icon.mjs` and
+`node scripts/make-notices.mjs` — and ship inside the installer.
 
 ## Env flags (dev/debug)
 
