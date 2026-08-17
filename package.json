@@ -1,0 +1,19 @@
+{
+  "name": "dsh-desktop",
+  "version": "0.0.0",
+  "description": "Electron desktop shell for DeepSeek Harness (Phase 0 POC)",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron electron/main.mjs",
+    "start:headless": "POC_HEADLESS=1 electron electron/main.mjs",
+    "electron:node": "electron -e \"console.log(process.versions.node)\""
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh": "0.1.0-rc.6"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0"
+  }
+}
