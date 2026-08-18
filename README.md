@@ -94,6 +94,7 @@ The build relies on a few facts about dsh's packaging:
 - `node-pty` and `koffi` are Node-API (ABI-stable), so `npmRebuild: false` keeps them loadable under Electron unchanged.
 - `--port 0` lets the OS pick a free port; the app reads the real URL from dsh's printed `dsh web:` line.
 - `asar: false` because the spawned dsh process reads `node_modules` from disk directly.
+- The Windows directory picker worker (`@deepseek-ai/dsh-host-directory-picker-native`) spawns itself via `process.execPath`, which under Electron is the Electron binary. A `patch-package` patch (`patches/`) forces `ELECTRON_RUN_AS_NODE=1` on that worker spawn so it boots as Node; drop the patch once an upstream dsh release carries the fix and the `@deepseek-ai/dsh-*` versions are bumped.
 
 `package.json` declares many `@deepseek-ai/dsh-*` packages in addition to the `@deepseek-ai/dsh` CLI. That list is not optional: dsh declares those packages as **peerDependencies** (imported at runtime), and electron-builder only bundles the production `dependencies` graph, so it drops peer deps. If a dsh version bump adds a new runtime import, add the missing `@deepseek-ai/*` package here too — compare the packaged `resources/app/node_modules/@deepseek-ai` against the dev `node_modules/@deepseek-ai` to find gaps.
 

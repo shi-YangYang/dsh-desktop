@@ -9,7 +9,8 @@
   "main": "electron/main.mjs",
   "scripts": {
     "start": "electron electron/main.mjs",
-    "build": "electron-builder --publish never"
+    "build": "electron-builder --publish never",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@deepseek-ai/cordis-plugin-group": "1.0.1",
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "electron": "^39.0.0",
-    "electron-builder": "^26.0.0"
+    "electron-builder": "^26.0.0",
+    "patch-package": "^8.0.1"
   }
 }

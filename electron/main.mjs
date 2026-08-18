@@ -10,7 +10,7 @@
  *   POC_AUTO_QUIT_MS=N  quit after N ms regardless (smoke guard).
  */
 
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog, Menu } from 'electron'
 import { spawn } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -104,6 +104,10 @@ function stopBackend() {
 }
 
 async function startup() {
+  // The default application menu (File/Edit/Window/Help) has no actions wired
+  // to the dsh web surface, so drop it — the app is driven entirely by the
+  // loaded page.
+  Menu.setApplicationMenu(null)
   console.log('[dsh-desktop] electron version:', process.versions.electron)
   console.log('[dsh-desktop] electron bundled node:', process.versions.node)
   console.log('[dsh-desktop] spawn via:', USE_SYSTEM_NODE ? 'system-node' : 'electron-bundled-node')
