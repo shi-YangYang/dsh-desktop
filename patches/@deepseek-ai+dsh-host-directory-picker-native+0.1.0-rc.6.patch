@@ -10,3 +10,27 @@ index 5ae777f..7c1a231 100644
  		DSH_DIALOG_TITLE: data.title
  	};
  	const stdio = [
+diff --git a/node_modules/@deepseek-ai/dsh-host-directory-picker-native/lib/worker.cjs b/node_modules/@deepseek-ai/dsh-host-directory-picker-native/lib/worker.cjs
+index 14f4584..ce5ff23 100644
+--- a/node_modules/@deepseek-ai/dsh-host-directory-picker-native/lib/worker.cjs
++++ b/node_modules/@deepseek-ai/dsh-host-directory-picker-native/lib/worker.cjs
+@@ -19,10 +19,15 @@
+ * on real Windows — so view the memory directly instead.
+ */
+ function readUtf16(koffi, address) {
+-	const bytes = Buffer.from(koffi.view(address, 32768));
+-	let end = 0;
+-	while (end + 1 < bytes.length && bytes[end] !== 0) end += 2;
+-	return bytes.toString("utf16le", 0, end);
++	const kernel32 = koffi.load("kernel32.dll");
++	const lstrlenW = kernel32.func("__stdcall", "lstrlenW", "int32", ["void *"]);
++	const length = lstrlenW(address);
++	if (length <= 0) return "";
++	let text = "";
++	for (let i = 0; i < length; i++) {
++		text += String.fromCharCode(koffi.decode(address + BigInt(i * 2), "uint16"));
++	}
++	return text;
+ }
+ const COINIT_APARTMENTTHREADED = 2;
+ const CLSCTX_INPROC_SERVER = 1;
