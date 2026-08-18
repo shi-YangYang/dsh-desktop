@@ -2,18 +2,19 @@
 
 [English](README.md) | 中文
 
-> DeepSeek Harness 的 Electron 桌面壳 —— 双击即可启动 dsh,无需命令行。
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 [![build](https://github.com/shi-YangYang/dsh-desktop/actions/workflows/build.yml/badge.svg)](https://github.com/shi-YangYang/dsh-desktop/actions/workflows/build.yml)
 
-dsh-desktop 用 Electron 窗口封装了 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Web 界面。
+DeepSeek Harness 的 Electron 桌面壳。
+
+dsh-desktop 用 Electron 窗口封装了 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Web 界面,让你双击即可启动 dsh,无需命令行。
 
 它**不是** deepseek-harness 的 fork,而是一个薄薄的消费方:依赖已发布的 `@deepseek-ai/dsh` CLI —— 升级 dsh 只是改个版本号,而不是 merge。
 
 ## 目录
 
+- [安全](#安全)
 - [背景](#背景)
 - [安装](#安装)
 - [使用](#使用)
@@ -21,7 +22,12 @@ dsh-desktop 用 Electron 窗口封装了 [DeepSeek Harness](https://github.com/d
 - [发布](#发布)
 - [维护](#维护)
 - [维护者](#维护者)
+- [贡献](#贡献)
 - [许可证](#许可证)
+
+## 安全
+
+安全漏洞请通过 [GitHub 安全通告](https://github.com/shi-YangYang/dsh-desktop/security/advisories/new) 私下报告给 [@shi-YangYang](https://github.com/shi-YangYang)。
 
 ## 背景
 
@@ -73,7 +79,7 @@ ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ npm install
 npm run build
 ```
 
-产物是 `dist/DSH Desktop Setup 0.1.0.exe`(NSIS;安装桌面 + 开始菜单快捷方式)。中国镜像的机器上,给 NSIS 工具下载加二进制镜像:
+产物是 `dist/DSH Desktop Setup <version>.exe`(NSIS;安装桌面 + 开始菜单快捷方式)。中国镜像的机器上,给 NSIS 工具下载加二进制镜像:
 
 ```sh
 ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ npm run build
@@ -94,12 +100,19 @@ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-
 - `node-pty` 和 `koffi` 是 Node-API(ABI 稳定),所以 `npmRebuild: false` 让它们在 Electron 下原样加载。
 - `--port 0` 让操作系统分配空闲端口;应用从 dsh 打印的 `dsh web:` 行读取真实 URL。
 - `asar: false`,因为启动出来的 dsh 进程要直接读磁盘上的 `node_modules`。
+- Windows 目录选择器的 worker(`@deepseek-ai/dsh-host-directory-picker-native`)通过 `process.execPath` 再拉起自身,在 Electron 下 `process.execPath` 是 Electron 二进制。`patch-package` 补丁(`patches/`)给这次 spawn 强制加上 `ELECTRON_RUN_AS_NODE=1` 让它以 Node 启动,并修复了读取所选路径时先量长度再读、避免越界读崩进程的问题;等上游 dsh 发布版带上这些修复、并升级 `@deepseek-ai/dsh-*` 版本后再删掉补丁。
 
 `package.json` 里除了 `@deepseek-ai/dsh` CLI 之外,还声明了很多 `@deepseek-ai/dsh-*` 包。这份清单不是可有可无的:dsh 把这些包声明为 **peerDependencies**(运行时 import),而 electron-builder 只打包生产 `dependencies` 图,会漏掉 peer 依赖。如果升级 dsh 版本后新增了运行时 import,就要把缺失的 `@deepseek-ai/*` 包也加进来 —— 对比打包后的 `resources/app/node_modules/@deepseek-ai` 和开发环境的 `node_modules/@deepseek-ai` 即可找出缺口。
 
 ## 维护者
 
 [@shi-YangYang](https://github.com/shi-YangYang)。
+
+## 贡献
+
+问题和 PR 都欢迎 —— [提交 issue](https://github.com/shi-YangYang/dsh-desktop/issues) 或发 PR。
+
+请保持 README 双语:同时更新 `README.md`(英文)和 `README.zh.md`(中文)。对内置依赖的补丁放在 `patches/`,用 `patch-package` 管理。
 
 ## 许可证
 
